@@ -38,6 +38,8 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void UnPossessed() override;
+
 private:
 
 
@@ -52,6 +54,8 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Weapon)
 	AGun* Gun;
+
+	
 
 	
 
