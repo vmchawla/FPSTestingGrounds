@@ -19,12 +19,24 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	//
 	UFUNCTION(BlueprintCallable, Category = Weapon)
-	void PlaceActors(TSubclassOf<AActor> ToSpawn, int MinSpawn, int MaxSpawn);
+	void PlaceActors(TSubclassOf<AActor> ToSpawn, int MinSpawn = 1, int MaxSpawn = 1, float Radius = 500.0f);
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+private:
+
+	bool CanSpawnAtLocation(FVector Location, float Radius);
+
+	bool TryGetEmptyLocation(FVector &OutHitLocation, float Radius);
+
+	//Helper function to Spawn Actor, set its location to Relative and attach it to the parent tile
+	void PlaceActor(TSubclassOf<AActor> ToSpawn, FVector SpawnPoint);
+
+
 
 	
 	
