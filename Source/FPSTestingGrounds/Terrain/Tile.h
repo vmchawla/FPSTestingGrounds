@@ -6,6 +6,9 @@
 #include "GameFramework/Actor.h"
 #include "Tile.generated.h"
 
+//Forward Declarations
+class UActorPool;
+
 UCLASS()
 class FPSTESTINGGROUNDS_API ATile : public AActor
 {
@@ -21,20 +24,48 @@ protected:
 
 	//
 	UFUNCTION(BlueprintCallable, Category = Weapon)
-	void PlaceActors(TSubclassOf<AActor> ToSpawn, int MinSpawn = 1, int MaxSpawn = 1, float Radius = 500.0f);
+	void PlaceActors(TSubclassOf<AActor> ToSpawn, int MinSpawn = 1, int MaxSpawn = 1, float Radius = 500.0f, float MinScale = 1, float MaxScale = 1);
 
-public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	/** Overridable function called whenever this actor is being removed from a level */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Navigation")
+	FVector NavigationBoundsOffset = FVector(2000.0, 0.0f, 0.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawning")
+	FVector MinExtent = FVector(0.0f, -2000.0f, 0.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawning")
+	FVector MaxExtent = FVector(4000.0f, 2000.0f, 0.0f);
+
+	//FVector Min(0, -2000, 0);
+	//FVector Max(4000, 2000, 0);
+
+public:	
+
+	//Set our local UActor Pool Variable and Position the NavMesh Bounds Volume
+	UFUNCTION(BlueprintCallable, Category = "Pool")
+	void SetPool(UActorPool* Pool);
+
 private:
 
-	bool CanSpawnAtLocation(FVector Location, float Radius);
+	//Helper function for PlaceActors to Spawn Actor, set its Relative location and rotation and attach it to the parent tile
+	void PlaceActor(TSubclassOf<AActor> ToSpawn, FVector SpawnPoint, float Yaw, float Scale);
 
 	bool TryGetEmptyLocation(FVector &OutHitLocation, float Radius);
 
-	//Helper function to Spawn Actor, set its location to Relative and attach it to the parent tile
-	void PlaceActor(TSubclassOf<AActor> ToSpawn, FVector SpawnPoint);
+	//Helper Function called in TryGetEmptyLocation
+	bool CanSpawnAtLocation(FVector Location, float Radius);
+
+	UActorPool* Pool;
+
+	AActor* NavMeshBoundsVolume;
+
+	void PositionAndCheckoutNavMeshBoundsVolume();
+
 
 
 

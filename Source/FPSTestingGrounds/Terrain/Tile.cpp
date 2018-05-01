@@ -3,6 +3,8 @@
 #include "Tile.h"
 #include "Engine/World.h"
 #include "Public/DrawDebugHelpers.h"
+#include "ActorPool.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 
 // Sets default values
@@ -18,11 +20,14 @@ void ATile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//CastSphere(GetActorLocation(), 300);
+	//TActorIterator<AActor> ActorIterator = TActorIterator<AActor>(GetWorld());
+	//while (ActorIterator)
+	//{
+	//	AActor* FoundActor = *ActorIterator;
+	//	UE_LOG(LogTemp, Warning, TEXT("Found ACtor: %s"), *FoundActor->GetName());
+	//	++ActorIterator;
+	//}
 
-	//CastSphere(GetActorLocation() + FVector(0, 0, 1000.0f), 300);
-	
-	
 }
 
 
@@ -34,7 +39,34 @@ void ATile::Tick(float DeltaTime)
 
 }
 
-void ATile::PlaceActors(TSubclassOf<AActor> ToSpawn, int MinSpawn, int MaxSpawn, float Radius)
+void ATile::SetPool(UActorPool * InPool)
+{
+	if (!InPool)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UActorPool instance is nullptr when setting local tile variable Pool"));
+		return;
+	}
+	Pool = InPool;
+	//UE_LOG(LogTemp, Warning, TEXT("[%s] Setting Pool %s"), *(this->GetName()), *(InPool->GetName()));
+
+	PositionAndCheckoutNavMeshBoundsVolume();
+
+}
+
+void ATile::PositionAndCheckoutNavMeshBoundsVolume()
+{
+	NavMeshBoundsVolume = Pool->Checkout();
+	if (!NavMeshBoundsVolume)
+	{
+		UE_LOG(LogTemp, Error, TEXT("NavMeshBoundsVolumePool is nullptr in Tile.cpp PositionandCheckoutNavMeshBoundsVolume()"));
+		return;
+	}
+	UE_LOG(LogTemp, Error, TEXT("[%s] Checkout: %s"), *GetName(), *NavMeshBoundsVolume->GetName());
+	NavMeshBoundsVolume->SetActorLocation(GetActorLocation() + NavigationBoundsOffset);
+	GetWorld()->GetNavigationSystem()->Build();
+}
+
+void ATile::PlaceActors(TSubclassOf<AActor> ToSpawn, int MinSpawn, int MaxSpawn, float Radius, float MinScale, float MaxScale)
 {
 
 
@@ -43,36 +75,34 @@ void ATile::PlaceActors(TSubclassOf<AActor> ToSpawn, int MinSpawn, int MaxSpawn,
 	for (int32 i = 0; i < numberToSpawn; i++)
 	{
 		FVector SpawnPoint;
-		if (TryGetEmptyLocation(SpawnPoint, Radius))
+		float RandomScale = FMath::RandRange(MinScale, MaxScale);
+		if (TryGetEmptyLocation(SpawnPoint, Radius * RandomScale ))
 		{
-			PlaceActor(ToSpawn, SpawnPoint);
+			float RandomYaw = FMath::RandRange(-181.0f, 181.0f);
+			
+			PlaceActor(ToSpawn, SpawnPoint, RandomYaw, RandomScale);
 		}
-		
-		//FVector Spawnpoint = FMath::RandPointInBox(Bounds);
-		////UE_LOG(LogTemp, Warning, TEXT("SpawnPoint: %s"), *(Spawnpoint.ToCompactString()));
-
-		//AActor* Spawned = GetWorld()->SpawnActor<AActor>(ToSpawn);
-		//Spawned->SetActorRelativeLocation(Spawnpoint);
-		//Spawned->AttachToActor(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
 	}
 
 
 }
 
-void ATile::PlaceActor(TSubclassOf<AActor> ToSpawn, FVector SpawnPoint)
+
+void ATile::PlaceActor(TSubclassOf<AActor> ToSpawn, FVector SpawnPoint, float Yaw, float Scale)
 {
 	AActor* Spawned = GetWorld()->SpawnActor<AActor>(ToSpawn);
 	Spawned->SetActorRelativeLocation(SpawnPoint);
+	Spawned->SetActorRotation(FRotator(0.0f, Yaw, 0.0f));
 	Spawned->AttachToActor(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
+	Spawned->SetActorScale3D(FVector(Scale));
+	
 
 }
 
 bool ATile::TryGetEmptyLocation(FVector &OutHitLocation, float Radius)
 {
-	FVector Min(0, -2000, 0);
-	FVector Max(4000, 2000, 0);
-	FBox Bounds(Min, Max);
-	const int MAX_ATTEMPTS = 100;
+	FBox Bounds(MinExtent, MaxExtent);
+	const int MAX_ATTEMPTS = 5;
 
 	for (size_t i = 0; i < MAX_ATTEMPTS; i++)
 	{
@@ -104,12 +134,18 @@ bool ATile::CanSpawnAtLocation(FVector Location, float Radius)
 		FCollisionShape::MakeSphere(Radius)
 	);
 
-	FColor ResultColor = HasHit ? FColor::Red : FColor::Green;  //A ? B: C If A is True than return B, else C
-
-	DrawDebugSphere(GetWorld(), GlobalLocation, Radius, 20, ResultColor, true, 1000.0f);
-
 	return !HasHit;
 }
 
+void ATile::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	//if (!NavMeshBoundsVolume)
+	//{
+	//	UE_LOG(LogTemp, Error, TEXT("NavMeshBoundsVolumePool is nullptr in Tile.cpp EndPlay"));
+	//	return;
+	//}
+	Pool->Return(NavMeshBoundsVolume);
+
+}
 
 
