@@ -33,8 +33,4 @@ private:
 	void AddToPool(ANavMeshBoundsVolume *VolumeToAdd);
 
 	
-	
-	
-	
-	
 };

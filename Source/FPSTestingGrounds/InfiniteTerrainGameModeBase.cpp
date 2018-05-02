@@ -8,15 +8,18 @@
 AInfiniteTerrainGameModeBase::AInfiniteTerrainGameModeBase()
 {
 	NavMeshActorPool = CreateDefaultSubobject<UActorPool>(FName("NavMeshActorPool"));
+	SetRootComponent(NavMeshActorPool);
 }
 
 void AInfiniteTerrainGameModeBase::PopulateBoundsVolume()
 {
-	for (TActorIterator<ANavMeshBoundsVolume> VolumeIterator (GetWorld()); VolumeIterator; ++VolumeIterator)
+	for (TActorIterator<ANavMeshBoundsVolume> VolumeIterator(GetWorld()); VolumeIterator; ++VolumeIterator)
 	{
 		AddToPool(*VolumeIterator);
-	}
+		//AActor* FoundActor = *VolumeIterator;
+		//UE_LOG(LogTemp, Warning, TEXT("[%s] Log message"), *FoundActor->GetName());
 
+	}
 }
 
 

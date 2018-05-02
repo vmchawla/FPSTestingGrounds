@@ -6,6 +6,19 @@
 #include "GameFramework/Actor.h"
 #include "Tile.generated.h"
 
+
+USTRUCT()
+struct FSpawnPosition
+{
+	GENERATED_USTRUCT_BODY()
+
+	FVector SpawnLocation;
+	float YawRotation;
+	float Scale;
+
+};
+
+
 //Forward Declarations
 class UActorPool;
 
@@ -13,8 +26,8 @@ UCLASS()
 class FPSTESTINGGROUNDS_API ATile : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	ATile();
 
@@ -23,8 +36,12 @@ protected:
 	virtual void BeginPlay() override;
 
 	//
-	UFUNCTION(BlueprintCallable, Category = Weapon)
-	void PlaceActors(TSubclassOf<AActor> ToSpawn, int MinSpawn = 1, int MaxSpawn = 1, float Radius = 500.0f, float MinScale = 1, float MaxScale = 1);
+	UFUNCTION(BlueprintCallable, Category = "Spawning")
+		void PlaceActors(TSubclassOf<AActor> ToSpawn, int32 MinSpawn = 1, int32 MaxSpawn = 1, float Radius = 500.0f, float MinScale = 1, float MaxScale = 1);
+
+	UFUNCTION(BlueprintCallable, Category = "Spawning")
+		void PlaceAIPawns(TSubclassOf<APawn> ToSpawn, int32 MinSpawn = 1, int32 MaxSpawn = 1, float Radius = 500.0f);
+
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -33,27 +50,33 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Navigation")
-	FVector NavigationBoundsOffset = FVector(2000.0, 0.0f, 0.0f);
+		FVector NavigationBoundsOffset = FVector(2000.0, 0.0f, 0.0f);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawning")
-	FVector MinExtent = FVector(0.0f, -2000.0f, 0.0f);
+		FVector MinExtent = FVector(0.0f, -2000.0f, 0.0f);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawning")
-	FVector MaxExtent = FVector(4000.0f, 2000.0f, 0.0f);
+		FVector MaxExtent = FVector(4000.0f, 2000.0f, 0.0f);
 
 	//FVector Min(0, -2000, 0);
 	//FVector Max(4000, 2000, 0);
 
-public:	
+public:
 
 	//Set our local UActor Pool Variable and Position the NavMesh Bounds Volume
 	UFUNCTION(BlueprintCallable, Category = "Pool")
-	void SetPool(UActorPool* Pool);
+		void SetPool(UActorPool* Pool);
 
 private:
 
+	template<class T>
+	void RandomyPlaceActors(TSubclassOf<T> ToSpawn, int32 MinSpawn = 1, int32 MaxSpawn = 1, float Radius = 500.0f, float MinScale = 1, float MaxScale = 1);
+
 	//Helper function for PlaceActors to Spawn Actor, set its Relative location and rotation and attach it to the parent tile
-	void PlaceActor(TSubclassOf<AActor> ToSpawn, FVector SpawnPoint, float Yaw, float Scale);
+	void PlaceActor(TSubclassOf<AActor> ToSpawn, FSpawnPosition SpawnPosition);
+
+	//Helper function for PlaceAIPawns to Spawn Actor, set its Relative location and rotation and attach it to the parent tile
+	void PlaceActor(TSubclassOf<APawn> ToSpawn, FSpawnPosition SpawnPosition);
 
 	bool TryGetEmptyLocation(FVector &OutHitLocation, float Radius);
 
@@ -66,9 +89,4 @@ private:
 
 	void PositionAndCheckoutNavMeshBoundsVolume();
 
-
-
-
-	
-	
 };

@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "ActorPool.generated.h"
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class FPSTESTINGGROUNDS_API UActorPool : public UActorComponent
+class FPSTESTINGGROUNDS_API UActorPool : public USceneComponent
 {
 	GENERATED_BODY()
 

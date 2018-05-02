@@ -20,13 +20,6 @@ void ATile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//TActorIterator<AActor> ActorIterator = TActorIterator<AActor>(GetWorld());
-	//while (ActorIterator)
-	//{
-	//	AActor* FoundActor = *ActorIterator;
-	//	UE_LOG(LogTemp, Warning, TEXT("Found ACtor: %s"), *FoundActor->GetName());
-	//	++ActorIterator;
-	//}
 
 }
 
@@ -61,43 +54,74 @@ void ATile::PositionAndCheckoutNavMeshBoundsVolume()
 		UE_LOG(LogTemp, Error, TEXT("NavMeshBoundsVolumePool is nullptr in Tile.cpp PositionandCheckoutNavMeshBoundsVolume()"));
 		return;
 	}
-	UE_LOG(LogTemp, Error, TEXT("[%s] Checkout: %s"), *GetName(), *NavMeshBoundsVolume->GetName());
+	
+	//UE_LOG(LogTemp, Error, TEXT("[%s] Checkout: %s"), *GetName(), *NavMeshBoundsVolume->GetName());
 	NavMeshBoundsVolume->SetActorLocation(GetActorLocation() + NavigationBoundsOffset);
 	GetWorld()->GetNavigationSystem()->Build();
 }
 
-void ATile::PlaceActors(TSubclassOf<AActor> ToSpawn, int MinSpawn, int MaxSpawn, float Radius, float MinScale, float MaxScale)
+template<class T>
+void ATile::RandomyPlaceActors(TSubclassOf<T> ToSpawn, int32 MinSpawn, int32 MaxSpawn, float Radius, float MinScale, float MaxScale)
 {
-
-
-	int numberToSpawn = FMath::RandRange(MinSpawn, MaxSpawn);
+	int32 numberToSpawn = FMath::RandRange(MinSpawn, MaxSpawn);
 
 	for (int32 i = 0; i < numberToSpawn; i++)
 	{
 		FVector SpawnPoint;
 		float RandomScale = FMath::RandRange(MinScale, MaxScale);
-		if (TryGetEmptyLocation(SpawnPoint, Radius * RandomScale ))
+		bool didGetEmptyLocation = TryGetEmptyLocation(SpawnPoint, Radius * RandomScale);
+		float RandomYaw = FMath::RandRange(-181.0f, 181.0f);
+		FSpawnPosition MySpawnPosition;
+		MySpawnPosition.SpawnLocation = SpawnPoint;
+		MySpawnPosition.Scale = RandomScale;
+		MySpawnPosition.YawRotation = RandomYaw;
+
+		if (didGetEmptyLocation)
 		{
-			float RandomYaw = FMath::RandRange(-181.0f, 181.0f);
-			
-			PlaceActor(ToSpawn, SpawnPoint, RandomYaw, RandomScale);
+			PlaceActor(ToSpawn, MySpawnPosition);
 		}
 	}
-
-
 }
 
+void ATile::PlaceActors(TSubclassOf<AActor> ToSpawn, int32 MinSpawn, int32 MaxSpawn, float Radius, float MinScale, float MaxScale)
+{
+	RandomyPlaceActors(ToSpawn, MinSpawn, MaxSpawn, Radius, MinScale, MaxScale);
+}
 
-void ATile::PlaceActor(TSubclassOf<AActor> ToSpawn, FVector SpawnPoint, float Yaw, float Scale)
+void ATile::PlaceAIPawns(TSubclassOf<APawn> ToSpawn, int32 MinSpawn, int32 MaxSpawn, float Radius)
+{
+	RandomyPlaceActors(ToSpawn, MinSpawn, MaxSpawn, Radius, 1, 1);
+}
+
+void ATile::PlaceActor(TSubclassOf<AActor> ToSpawn, FSpawnPosition SpawnPosition)
 {
 	AActor* Spawned = GetWorld()->SpawnActor<AActor>(ToSpawn);
-	Spawned->SetActorRelativeLocation(SpawnPoint);
-	Spawned->SetActorRotation(FRotator(0.0f, Yaw, 0.0f));
+	if (!Spawned)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Actor Spawned is null in Tile.cpp"));
+		return;
+	}
+	Spawned->SetActorRelativeLocation(SpawnPosition.SpawnLocation);
+	Spawned->SetActorRotation(FRotator(0.0f, SpawnPosition.YawRotation, 0.0f));
 	Spawned->AttachToActor(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
-	Spawned->SetActorScale3D(FVector(Scale));
-	
-
+	Spawned->SetActorScale3D(FVector(SpawnPosition.Scale));
 }
+
+void ATile::PlaceActor(TSubclassOf<APawn> ToSpawn, FSpawnPosition SpawnPosition)
+{
+	APawn* SpawnedPawn = GetWorld()->SpawnActor<APawn>(ToSpawn);
+	if (!SpawnedPawn)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AIPawn Spawned is null in Tile.cpp"));
+		return;
+	}
+	SpawnedPawn->SetActorRelativeLocation(SpawnPosition.SpawnLocation);
+	SpawnedPawn->SetActorRotation(FRotator(0.0f, SpawnPosition.YawRotation, 0.0f));
+	SpawnedPawn->AttachToActor(this, FAttachmentTransformRules(EAttachmentRule::KeepRelative, false));
+	SpawnedPawn->SpawnDefaultController();
+	SpawnedPawn->Tags.Add(FName("Enemy"));
+}
+
 
 bool ATile::TryGetEmptyLocation(FVector &OutHitLocation, float Radius)
 {
@@ -139,11 +163,11 @@ bool ATile::CanSpawnAtLocation(FVector Location, float Radius)
 
 void ATile::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	//if (!NavMeshBoundsVolume)
-	//{
-	//	UE_LOG(LogTemp, Error, TEXT("NavMeshBoundsVolumePool is nullptr in Tile.cpp EndPlay"));
-	//	return;
-	//}
+	if (!NavMeshBoundsVolume)
+	{
+		UE_LOG(LogTemp, Error, TEXT("NavMeshBoundsVolumePool is nullptr in Tile.cpp EndPlay"));
+		return;
+	}
 	Pool->Return(NavMeshBoundsVolume);
 
 }
